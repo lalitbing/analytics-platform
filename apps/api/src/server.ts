@@ -15,7 +15,7 @@ app.use(cors({
   methods: ["GET","POST"]
 }))
 
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", (_req:any, res:any) => {
   res.json({
     status: "ok",
     env: process.env.NODE_ENV || "dev"
