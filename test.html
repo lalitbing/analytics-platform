@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<button id="btn">Track Signup</button>
+
+<script type="module">
+  import { Analytics } from "./packages/sdk/dist/index.js"
+  
+  const analytics = new Analytics(
+    "f40f2629-f5a1-4b43-a576-e54128113690",
+    "http://localhost:4000/api/track"
+  )
+  
+  document.getElementById("btn").onclick = () => {
+    analytics.track("sdk_signup")
+    alert("SDK event sent")
+  }
+  </script>
+  
+
+</body>
+</html>
