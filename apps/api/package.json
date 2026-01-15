@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js"
+    "start": "npm run build && node dist/server.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",

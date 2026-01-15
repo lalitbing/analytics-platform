@@ -38,7 +38,7 @@ export const getTopEvents = async (req: any, res: any) => {
 
     let q = supabase
       .from('events')
-      .select('event_name')
+      .select('event_name, created_at')
       .eq('project_id', req.project.id);
 
     if (from && to) {
@@ -57,17 +57,32 @@ export const getTopEvents = async (req: any, res: any) => {
 
     if (error) throw error;
 
-    const grouped = (data || []).reduce((acc: any, e: any) => {
-      acc[e.event_name] = (acc[e.event_name] || 0) + 1;
+    const events = (data || []).filter((e: any) => e?.event_name && e?.created_at);
+
+    const grouped = events.reduce((acc: any, e: any) => {
+      const key = e.event_name;
+      if (!acc[key]) {
+        acc[key] = { count: 0, last_seen: e.created_at };
+      }
+
+      acc[key].count += 1;
+      if (e.created_at > acc[key].last_seen) {
+        acc[key].last_seen = e.created_at;
+      }
+
       return acc;
     }, {});
 
-    res.json(
-      Object.entries(grouped).map(([k, v]) => ({
-        event_name: k,
-        count: v,
-      }))
-    );
+    const top = Object.entries(grouped).map(([event_name, v]: any) => ({
+      event_name,
+      count: v.count,
+      last_seen: v.last_seen,
+    }));
+
+    res.json({
+      top,
+      events,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch top events' });

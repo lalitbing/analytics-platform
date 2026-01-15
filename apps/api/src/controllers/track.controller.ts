@@ -2,8 +2,6 @@ import { Request, Response } from 'express';
 import { ingestEvent } from '../services/ingest.service';
 
 export const trackEvent = async (req: any, res: any) => {
-  console.log('TRACK CONTROLLER HIT');
-  console.log('REQ.PROJECT =', req.project);
 
   if (!req.project) {
     return res.status(500).json({
@@ -11,10 +9,13 @@ export const trackEvent = async (req: any, res: any) => {
     });
   }
 
+  // Check if useRedis query parameter or body parameter is set
+  const useRedis = req.query.useRedis === 'true' || req.body.useRedis === true;
+
   await ingestEvent({
     ...req.body,
     projectId: req.project.id,
-  });
+  }, useRedis);
 
   res.json({ success: true });
 };
