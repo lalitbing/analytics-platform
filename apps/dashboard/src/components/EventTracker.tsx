@@ -54,17 +54,16 @@ export default function EventTracker({ onTracked }: { onTracked?: () => void }) 
     };
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!eventName.trim()) {
+  const submit = async () => {
+    const normalized = eventName.replace(/[^a-zA-Z0-9_]/g, '').trim();
+    if (!normalized) {
       return;
     }
 
     setIsTracking(true);
     setError(null);
     try {
-      await trackEvent(eventName.trim(), useRedis);
+      await trackEvent(normalized, useRedis);
       setIsTracking(false);
       setIsOpen(false);
       setEventName('');
@@ -158,7 +157,13 @@ export default function EventTracker({ onTracked }: { onTracked?: () => void }) 
             </div>
 
             {/* Body with input + button */}
-            <form onSubmit={handleSubmit} className="px-4 py-4 sm:px-6 sm:py-5 space-y-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit();
+              }}
+              className="px-4 py-4 sm:px-6 sm:py-5 space-y-4"
+            >
               <div className="flex flex-col gap-2">
                 <label htmlFor="event-name" className="text-sm font-medium text-gray-700">
                   Event name
@@ -167,7 +172,7 @@ export default function EventTracker({ onTracked }: { onTracked?: () => void }) 
                   id="event-name"
                   type="text"
                   value={eventName}
-                  onChange={(e) => setEventName(e.target.value)}
+                  onChange={(e) => setEventName(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
                   placeholder="Enter event name"
                   className="border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400"
                   disabled={isTracking}
@@ -190,7 +195,8 @@ export default function EventTracker({ onTracked }: { onTracked?: () => void }) 
                   Cancel
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={() => void submit()}
                   disabled={!eventName.trim() || isTracking}
                   className={
                     'px-4 py-2 rounded-md text-sm font-medium transition ' +
