@@ -72,7 +72,7 @@ export default function AppShell({
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-gray-50 to-white">
+    <div className="min-h-screen flex flex-col bg-linear-to-b from-gray-50 to-white">
       {/* Subtle grain */}
       <div
         aria-hidden="true"
@@ -212,7 +212,7 @@ export default function AppShell({
         </>
       )}
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl w-full flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 px-4 py-6 sm:px-6 lg:px-8">
           {/* Desktop Sidebar */}
           <aside className="hidden lg:block">
@@ -336,6 +336,14 @@ export default function AppShell({
           </main>
         </div>
       </div>
+
+      <footer className="mt-auto border-t border-gray-200/70 bg-white/70 backdrop-blur">
+        <div className="mx-auto max-w-7xl px-4 py-2 sm:px-6 lg:px-8">
+          <p className="text-center text-xs text-gray-600">
+            © {new Date().getFullYear()} Pulseboard. MIT Licensed.
+          </p>
+        </div>
+      </footer>
 
       <EventTracker onTracked={onEventTracked} />
     </div>

@@ -340,4 +340,6 @@ Future improvements:
 
 # 📜 License
 
-MIT
+Copyright (c) 2026 Lalit
+
+Licensed under the **MIT License**.
