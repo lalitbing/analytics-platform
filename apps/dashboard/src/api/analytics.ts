@@ -33,10 +33,10 @@ export const getTopEvents = async (range: any) => {
   return data;
 };
 
-export const trackEvent = async (eventName: string) => {
+export const trackEvent = async (eventName: string, useRedis: boolean = false) => {
   const { data } = await axios.post(
     `${API}/track`,
-    { event: eventName },
+    { event: eventName, useRedis },
     {
       headers: {
         "x-api-key": API_KEY,
