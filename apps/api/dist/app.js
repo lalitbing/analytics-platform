@@ -14,6 +14,8 @@ exports.limiter = (0, express_rate_limit_1.default)({
     message: "Too many requests, please try again later. - Rate Limit Exceeded"
 });
 const app = (0, express_1.default)();
+// Prevent Express from generating ETags (avoids conditional GET 304s for dynamic endpoints).
+app.disable("etag");
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 app.use(exports.limiter);

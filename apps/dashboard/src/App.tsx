@@ -304,6 +304,7 @@ function App() {
       subtitle={page === 'Overview' ? formatRangeLabel(appliedRange.from, appliedRange.to) : undefined}
       activeNav={page}
       onNavigate={(p) => setPage(p)}
+      onToast={(msg) => setToast(msg)}
       onEventTracked={() => {
         setToast('Event tracked');
         if (!realTime.isRealTimeEnabled) {

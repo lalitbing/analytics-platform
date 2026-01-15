@@ -1,17 +1,32 @@
 import { saveEvent } from "./db"
 import Redis from "ioredis"
 
-let _redis: Redis | null = null
+let _consumerRedis: Redis | null = null
+let _heartbeatRedis: Redis | null = null
 
-function getRedis() {
-  if (_redis) return _redis
-  const url = process.env.REDIS_URL
-  if (!url) {
-    throw new Error("REDIS_URL is not set")
-  }
+function createRedis(url: string) {
   const useTls = url.startsWith("rediss://")
-  _redis = new Redis(url, useTls ? { tls: {} } : {})
-  return _redis
+  return new Redis(url, useTls ? { tls: {} } : {})
+}
+
+function getRedisUrl() {
+  const url = process.env.REDIS_URL
+  if (!url) throw new Error("REDIS_URL is not set")
+  return url
+}
+
+// IMPORTANT: use separate connections. BRPOP blocks a connection, preventing
+// other commands (like heartbeat SET) from executing on that same socket.
+function getConsumerRedis() {
+  if (_consumerRedis) return _consumerRedis
+  _consumerRedis = createRedis(getRedisUrl())
+  return _consumerRedis
+}
+
+function getHeartbeatRedis() {
+  if (_heartbeatRedis) return _heartbeatRedis
+  _heartbeatRedis = createRedis(getRedisUrl())
+  return _heartbeatRedis
 }
 
 const WORKER_HEARTBEAT_KEY = "pulseboard:worker:heartbeat"
@@ -22,7 +37,7 @@ const startHeartbeat = () => {
   // Fire immediately, then refresh periodically.
   const beat = async () => {
     try {
-      await getRedis().set(WORKER_HEARTBEAT_KEY, String(Date.now()), "EX", WORKER_HEARTBEAT_TTL_SECONDS)
+      await getHeartbeatRedis().set(WORKER_HEARTBEAT_KEY, String(Date.now()), "EX", WORKER_HEARTBEAT_TTL_SECONDS)
     } catch (err) {
       // Don't crash the worker if Redis has a transient hiccup.
       console.error("Worker heartbeat failed:", err)
@@ -38,7 +53,7 @@ const startHeartbeat = () => {
 export const consume = async () => {
   startHeartbeat()
   while(true){
-    const data = await getRedis().brpop("events", 0)
+    const data = await getConsumerRedis().brpop("events", 0)
     if(!data) continue
 
     const payload = JSON.parse(data[1])

@@ -1,8 +1,33 @@
 import { useEffect, useState } from 'react';
 import { getWorkerStatus, trackEvent } from '../api/analytics';
 
-export default function EventTracker({ onTracked }: { onTracked?: () => void }) {
+const parseProperties = (
+  raw: string
+): { ok: true; value: Record<string, unknown> | undefined } | { ok: false; error: string } => {
+  const trimmed = raw.trim();
+  if (!trimmed) return { ok: true, value: undefined };
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
+      return { ok: false, error: 'Properties must be a JSON object (e.g. {"plan":"pro"}).' };
+    }
+    return { ok: true, value: parsed as Record<string, unknown> };
+  } catch {
+    return { ok: false, error: 'Invalid JSON in Properties.' };
+  }
+};
+
+export default function EventTracker({
+  onTracked,
+  onToast,
+}: {
+  onTracked?: () => void;
+  onToast?: (message: string) => void;
+}) {
   const [eventName, setEventName] = useState('');
+  const [propertiesText, setPropertiesText] = useState('');
+  const [propertiesError, setPropertiesError] = useState<string | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [useRedis, setUseRedis] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -14,31 +39,35 @@ export default function EventTracker({ onTracked }: { onTracked?: () => void }) 
 
     let disposed = false;
     let inFlight: AbortController | null = null;
+    let seq = 0;
 
     // Show a "checking" state the moment the popup opens.
     setWorkerActive(null);
 
     const check = async () => {
       if (disposed) return;
+      const requestId = ++seq;
       // Abort any prior request to avoid race-y updates.
       if (inFlight) inFlight.abort();
       const ac = new AbortController();
       inFlight = ac;
 
       try {
-        const status = await getWorkerStatus();
-        if (disposed || ac.signal.aborted) return;
-        const active = Boolean(status?.active);
-        setWorkerActive(active);
-        if (!active) {
-          // Prevent sending Redis ingestion when worker isn't consuming.
-          setUseRedis(false);
+        const status = await getWorkerStatus(ac.signal);
+        if (disposed || ac.signal.aborted || requestId !== seq) return;
+        // If status is null (e.g. 304/no-body), keep prior UI state.
+        if (status && typeof status.active === 'boolean') {
+          setWorkerActive(status.active);
+          if (!status.active) {
+            // Prevent sending Redis ingestion when worker isn't consuming.
+            setUseRedis(false);
+          }
         }
       } catch {
-        if (disposed || ac.signal.aborted) return;
-        // Network/API errors -> treat as inactive for safety.
-        setWorkerActive(false);
-        setUseRedis(false);
+        if (disposed || ac.signal.aborted || requestId !== seq) return;
+        // Network/API errors during polling shouldn't flip to "inactive" and disable Redis.
+        // Keep the last known state and let the next poll recover.
+        setWorkerActive((prev) => prev);
       }
     };
 
@@ -63,10 +92,20 @@ export default function EventTracker({ onTracked }: { onTracked?: () => void }) 
     setIsTracking(true);
     setError(null);
     try {
-      await trackEvent(normalized, useRedis);
+      const parsed = parseProperties(propertiesText);
+      if (!parsed.ok) {
+        setPropertiesError(parsed.error);
+        onToast?.(parsed.error);
+        setIsTracking(false);
+        return;
+      }
+
+      await trackEvent(normalized, useRedis, parsed.value);
       setIsTracking(false);
       setIsOpen(false);
       setEventName('');
+      setPropertiesText('');
+      setPropertiesError(null);
       onTracked?.();
     } catch (error) {
       console.error('Failed to track event:', error);
@@ -177,6 +216,34 @@ export default function EventTracker({ onTracked }: { onTracked?: () => void }) 
                   className="border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400"
                   disabled={isTracking}
                 />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="event-props" className="text-sm font-medium text-gray-700">
+                  Properties (JSON)
+                </label>
+                <textarea
+                  id="event-props"
+                  value={propertiesText}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setPropertiesText(next);
+                    const parsed = parseProperties(next);
+                    setPropertiesError(parsed.ok ? null : parsed.error);
+                  }}
+                  onBlur={() => {
+                    if (propertiesError) onToast?.(propertiesError);
+                  }}
+                  placeholder='{"plan":"pro","source":"cta"}'
+                  className={
+                    'border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 font-mono min-h-[92px] ' +
+                    (propertiesError ? 'border-red-300' : 'border-gray-300')
+                  }
+                  disabled={isTracking}
+                />
+                {propertiesError ? (
+                  <p className="text-xs text-red-700">{propertiesError}</p>
+                ) : null}
               </div>
 
               {error ? (

@@ -35,6 +35,7 @@ export default function AppShell({
   activeNav = 'Overview',
   onNavigate,
   onEventTracked,
+  onToast,
   realTimeEnabled,
   onRealTimeToggle,
   realTimeStatus,
@@ -48,6 +49,7 @@ export default function AppShell({
   activeNav?: 'Overview' | 'Events' | 'Integration';
   onNavigate?: (label: 'Overview' | 'Events' | 'Integration') => void;
   onEventTracked?: () => void;
+  onToast?: (message: string) => void;
   realTimeEnabled?: boolean;
   onRealTimeToggle?: (enabled: boolean) => void;
   realTimeStatus?: 'disabled' | 'missing_config' | 'missing_project' | 'connecting' | 'subscribed' | 'error';
@@ -345,7 +347,7 @@ export default function AppShell({
         </div>
       </footer>
 
-      <EventTracker onTracked={onEventTracked} />
+      <EventTracker onTracked={onEventTracked} onToast={onToast} />
     </div>
   );
 }
