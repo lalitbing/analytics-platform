@@ -35,6 +35,10 @@ export default function AppShell({
   activeNav = 'Overview',
   onNavigate,
   onEventTracked,
+  realTimeEnabled,
+  onRealTimeToggle,
+  realTimeStatus,
+  realTimeError,
 }: {
   title: string;
   subtitle?: string;
@@ -44,6 +48,10 @@ export default function AppShell({
   activeNav?: 'Overview' | 'Events' | 'Settings';
   onNavigate?: (label: 'Overview' | 'Events' | 'Settings') => void;
   onEventTracked?: () => void;
+  realTimeEnabled?: boolean;
+  onRealTimeToggle?: (enabled: boolean) => void;
+  realTimeStatus?: 'disabled' | 'missing_config' | 'missing_project' | 'connecting' | 'subscribed' | 'error';
+  realTimeError?: string | null;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -138,6 +146,67 @@ export default function AppShell({
                   Use the date range + search to isolate spikes.
                 </p>
               </div>
+
+              {onRealTimeToggle && (
+                <div className="rounded-2xl border border-gray-200/70 bg-gray-50 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-900">Real-time mode</p>
+                      <p className="mt-1 text-xs text-gray-600">
+                        Live updates via WebSocket
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRealTimeToggle(!realTimeEnabled)}
+                      className={
+                        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:ring-offset-2 ' +
+                        (realTimeEnabled ? 'bg-emerald-500' : 'bg-gray-200')
+                      }
+                      role="switch"
+                      aria-checked={realTimeEnabled}
+                    >
+                      <span
+                        className={
+                          'inline-block h-4 w-4 transform rounded-full bg-white transition-transform ' +
+                          (realTimeEnabled ? 'translate-x-6' : 'translate-x-1')
+                        }
+                      />
+                    </button>
+                  </div>
+                  {realTimeEnabled ? (
+                    <div className="mt-2 space-y-1">
+                      {realTimeStatus === 'subscribed' ? (
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] text-emerald-700 font-medium">Connected</span>
+                        </div>
+                      ) : realTimeStatus === 'connecting' ? (
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                          <span className="text-[10px] text-amber-700 font-medium">Connecting…</span>
+                        </div>
+                      ) : realTimeStatus === 'missing_config' ? (
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-amber-500" />
+                          <span className="text-[10px] text-amber-700 font-medium">Missing Supabase env</span>
+                        </div>
+                      ) : realTimeStatus === 'missing_project' ? (
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-amber-500" />
+                          <span className="text-[10px] text-amber-700 font-medium">Missing project id</span>
+                        </div>
+                      ) : realTimeStatus === 'error' ? (
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-red-500" />
+                          <span className="text-[10px] text-red-700 font-medium">Realtime error</span>
+                        </div>
+                      ) : null}
+                      {realTimeError ? <p className="text-[10px] text-gray-600">{realTimeError}</p> : null}
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </div>
           </div>
         </>
@@ -177,6 +246,67 @@ export default function AppShell({
                   Use the date range + search to isolate spikes.
                 </p>
               </div>
+
+              {onRealTimeToggle && (
+                <div className="rounded-2xl border border-gray-200/70 bg-white/80 backdrop-blur shadow-sm p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-900">Real-time mode</p>
+                      <p className="mt-1 text-xs text-gray-600">
+                        Live updates via WebSocket
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRealTimeToggle(!realTimeEnabled)}
+                      className={
+                        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:ring-offset-2 ' +
+                        (realTimeEnabled ? 'bg-emerald-500' : 'bg-gray-200')
+                      }
+                      role="switch"
+                      aria-checked={realTimeEnabled}
+                    >
+                      <span
+                        className={
+                          'inline-block h-4 w-4 transform rounded-full bg-white transition-transform ' +
+                          (realTimeEnabled ? 'translate-x-6' : 'translate-x-1')
+                        }
+                      />
+                    </button>
+                  </div>
+                  {realTimeEnabled ? (
+                    <div className="mt-2 space-y-1">
+                      {realTimeStatus === 'subscribed' ? (
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[10px] text-emerald-700 font-medium">Connected</span>
+                        </div>
+                      ) : realTimeStatus === 'connecting' ? (
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                          <span className="text-[10px] text-amber-700 font-medium">Connecting…</span>
+                        </div>
+                      ) : realTimeStatus === 'missing_config' ? (
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-amber-500" />
+                          <span className="text-[10px] text-amber-700 font-medium">Missing Supabase env</span>
+                        </div>
+                      ) : realTimeStatus === 'missing_project' ? (
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-amber-500" />
+                          <span className="text-[10px] text-amber-700 font-medium">Missing project id</span>
+                        </div>
+                      ) : realTimeStatus === 'error' ? (
+                        <div className="flex items-center gap-1">
+                          <div className="h-2 w-2 rounded-full bg-red-500" />
+                          <span className="text-[10px] text-red-700 font-medium">Realtime error</span>
+                        </div>
+                      ) : null}
+                      {realTimeError ? <p className="text-[10px] text-gray-600">{realTimeError}</p> : null}
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
               {sidebar ? (
                 <div className="rounded-2xl border border-gray-200/70 bg-white/80 backdrop-blur shadow-sm overflow-hidden">

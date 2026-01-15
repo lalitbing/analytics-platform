@@ -7,6 +7,7 @@ import Card from './components/Card';
 import DateFilter, { type DatePreset } from './components/DateFilter';
 import AppShell from './components/AppShell';
 import EventsView from './components/EventsView';
+import { useRealTime } from './contexts/RealTimeContext';
 
 type EventRow = {
   created_at: string;
@@ -49,6 +50,7 @@ function downloadCsv(filename: string, header: string[], rows: (string | number)
 }
 
 function App() {
+  const realTime = useRealTime();
   const [events, setEvents] = useState<EventRow[]>([]);
   const [top, setTop] = useState<TopEventRow[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -80,7 +82,10 @@ function App() {
     }));
   };
 
-  const loadData = async (currentRange: { from: string; to: string }) => {
+  const loadData = async (currentRange: { from: string; to: string }, opts?: { force?: boolean }) => {
+    // If real-time is enabled, don't load via REST API unless forced
+    if (realTime.isRealTimeEnabled && !opts?.force) return;
+
     setLoadingEvents(true);
     setLoadingTop(true);
 
@@ -94,6 +99,35 @@ function App() {
       setLoadingTop(false);
     }
   };
+
+  // Fetch project ID on mount
+  useEffect(() => {
+    const fetchProjectId = async () => {
+      const apiKey = import.meta.env.VITE_API_KEY;
+      if (!apiKey) {
+        console.warn('No API key provided, real-time mode will not work');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/project-info`, {
+          headers: {
+            'x-api-key': apiKey,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          realTime.setProjectId(data.project_id || data.id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch project ID:', error);
+      }
+    };
+
+    fetchProjectId();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // In dev, React StrictMode runs effects twice; guard to avoid duplicate API calls.
@@ -135,6 +169,11 @@ function App() {
   const applyRange = (next: { from: string; to: string }) => {
     setDraftRange(next);
     setAppliedRange(next);
+    
+    // Update real-time context date range
+    realTime.setDateRange(next);
+    
+    // Load data via REST API if not in real-time mode
     loadData(next);
   };
 
@@ -167,6 +206,11 @@ function App() {
     setAppliedRange(draftRange);
     setActivePreset('custom');
     setCustomOpen(true);
+    
+    // Update real-time context date range
+    realTime.setDateRange(draftRange);
+    
+    // Load data via REST API if not in real-time mode
     loadData(draftRange);
   };
 
@@ -203,12 +247,18 @@ function App() {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
   const apiKeyPresent = Boolean(import.meta.env.VITE_API_KEY);
 
-  const todayIso = safeIsoDate(new Date());
-  const activeDays = new Set(events.map((e) => e.created_at.split('T')[0]));
-  const uniqueEvents = new Set(events.map((e) => e.event_name)).size;
-  const todayCount = events.filter((e) => e.created_at.startsWith(todayIso)).length;
+  // Use real-time data if enabled, otherwise use REST data
+  const displayEvents = realTime.isRealTimeEnabled ? realTime.events : events;
+  const displayTop = realTime.isRealTimeEnabled ? realTime.topEvents : top;
+  const displayLoading = realTime.isRealTimeEnabled ? realTime.loading : loadingEvents;
+  const displayTopLoading = realTime.isRealTimeEnabled ? realTime.loading : loadingTop;
 
-  const dailyCounts = events.reduce<Record<string, number>>((acc, e) => {
+  const todayIso = safeIsoDate(new Date());
+  const activeDays = new Set(displayEvents.map((e) => e.created_at.split('T')[0]));
+  const uniqueEvents = new Set(displayEvents.map((e) => e.event_name)).size;
+  const todayCount = displayEvents.filter((e) => e.created_at.startsWith(todayIso)).length;
+
+  const dailyCounts = displayEvents.reduce<Record<string, number>>((acc, e) => {
     const d = e.created_at.split('T')[0];
     acc[d] = (acc[d] || 0) + 1;
     return acc;
@@ -219,9 +269,32 @@ function App() {
     return best;
   }, null);
 
-  const avgPerActiveDay = activeDays.size ? Math.round((events.length / activeDays.size) * 10) / 10 : 0;
+  const avgPerActiveDay = activeDays.size ? Math.round((displayEvents.length / activeDays.size) * 10) / 10 : 0;
 
-  const recentEvents = [...events].sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 8);
+  const recentEvents = [...displayEvents].sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 8);
+
+  const handleRealTimeToggle = (enabled: boolean) => {
+    if (enabled && !realTime.isConfigured) {
+      setToast('Real-time unavailable: missing Supabase env');
+      return;
+    }
+    realTime.setRealTimeEnabled(enabled);
+    if (enabled) {
+      // When enabling real-time, set the date range
+      realTime.setDateRange(appliedRange);
+      setLastUpdatedAt(new Date());
+    } else {
+      // When disabling real-time, reload data via REST API
+      loadData(appliedRange, { force: true });
+    }
+  };
+
+  // Update last updated time when real-time events change
+  useEffect(() => {
+    if (realTime.isRealTimeEnabled && realTime.events.length > 0) {
+      setLastUpdatedAt(new Date());
+    }
+  }, [realTime.isRealTimeEnabled, realTime.events.length]);
 
   return (
     <AppShell
@@ -231,8 +304,14 @@ function App() {
       onNavigate={(p) => setPage(p)}
       onEventTracked={() => {
         setToast('Event tracked');
-        loadData(appliedRange);
+        if (!realTime.isRealTimeEnabled) {
+          loadData(appliedRange);
+        }
       }}
+      realTimeEnabled={realTime.isRealTimeEnabled}
+      onRealTimeToggle={handleRealTimeToggle}
+      realTimeStatus={realTime.status}
+      realTimeError={realTime.error}
       right={
         <div className="w-full">
           <DateFilter
@@ -279,7 +358,7 @@ function App() {
                         downloadCsv(
                           `events_${appliedRange.from}_to_${appliedRange.to}.csv`,
                           ['event_name', 'created_at'],
-                          events.map((e) => [e.event_name, e.created_at])
+                          displayEvents.map((e) => [e.event_name, e.created_at])
                         );
                       }}
                     >
@@ -293,7 +372,7 @@ function App() {
                         downloadCsv(
                           `top_events_${appliedRange.from}_to_${appliedRange.to}.csv`,
                           ['event_name', 'count', 'last_seen'],
-                          top.map((e) => [e.event_name, e.count, e.last_seen])
+                          displayTop.map((e) => [e.event_name, e.count, e.last_seen])
                         );
                       }}
                     >
@@ -318,13 +397,13 @@ function App() {
           <div className="xl:col-span-2 space-y-6">
             {/* KPI row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KPI label="Total events" value={events.length} loading={loadingEvents} hint="All tracked events" />
-              <KPI label="Unique events" value={uniqueEvents} loading={loadingEvents} hint="Distinct names" />
-              <KPI label="Avg / active day" value={avgPerActiveDay} loading={loadingEvents} hint="Smoothed" />
+              <KPI label="Total events" value={displayEvents.length} loading={displayLoading} hint="All tracked events" />
+              <KPI label="Unique events" value={uniqueEvents} loading={displayLoading} hint="Distinct names" />
+              <KPI label="Avg / active day" value={avgPerActiveDay} loading={displayLoading} hint="Smoothed" />
               <KPI
                 label="Peak day"
                 value={peak ? peak.count : '—'}
-                loading={loadingEvents}
+                loading={displayLoading}
                 hint="Most events in one day"
                 secondary={peak ? formatShortDate(peak.date) : undefined}
               />
@@ -336,6 +415,15 @@ function App() {
               subtitle={lastUpdatedAt ? `Last updated ${lastUpdatedAt.toLocaleTimeString()}` : ' '}
               actions={
                 <div className="flex items-center gap-2">
+                  {realTime.isRealTimeEnabled && (
+                    <span
+                      className="text-[11px] rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5 flex items-center gap-1"
+                      title="Real-time mode active"
+                    >
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Live
+                    </span>
+                  )}
                   <span
                     className={
                       'text-[11px] rounded-full border px-2 py-0.5 ' +
@@ -351,12 +439,12 @@ function App() {
                 </div>
               }
             >
-              <EventsChart data={events} loading={loadingEvents} />
+              <EventsChart data={displayEvents} loading={displayLoading} />
             </Card>
 
             {/* Recent activity */}
             <Card title="Recent activity" subtitle="Latest events observed on the backend">
-              {loadingEvents ? (
+              {displayLoading ? (
                 <div className="space-y-2">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="h-10 rounded-xl bg-gray-100 animate-pulse" />
@@ -380,11 +468,11 @@ function App() {
           {/* Right rail */}
           <div className="space-y-6">
             <Card title="Top events" subtitle="Most frequent">
-              <TopEvents data={top} loading={loadingTop} />
+              <TopEvents data={displayTop} loading={displayTopLoading} />
             </Card>
 
             <Card title="Today" subtitle="Quick snapshot">
-              {loadingEvents ? (
+              {displayLoading ? (
                 <div className="h-10 rounded-xl bg-gray-100 animate-pulse" />
               ) : (
                 <div className="flex items-end justify-between">
@@ -464,7 +552,7 @@ function App() {
           </div>
         </div>
       ) : page === 'Events' ? (
-        <EventsView events={events} loading={loadingEvents} selectedEventName={selectedEventName} onClearSelected={() => {}} />
+        <EventsView events={displayEvents} loading={displayLoading} selectedEventName={selectedEventName} onClearSelected={() => {}} />
       ) : (
         <div className="rounded-2xl border border-gray-200/70 bg-white/80 backdrop-blur shadow-sm p-6">
           <p className="text-sm text-gray-600">Settings coming soon.</p>

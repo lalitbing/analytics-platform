@@ -1,73 +1,72 @@
-# React + TypeScript + Vite
+# Analytics Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A real-time analytics dashboard built with React, TypeScript, and Vite. Supports both REST API polling and real-time WebSocket updates via Supabase.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Real-time event tracking with WebSocket support
+- REST API fallback for traditional polling
+- Toggle between real-time and polling modes
+- Date range filtering
+- Event statistics and visualizations
+- CSV export functionality
 
-## React Compiler
+## Environment Variables
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Create a `.env.local` file in this directory with the following variables:
 
-## Expanding the ESLint configuration
+```bash
+# API Configuration
+VITE_API_URL=http://localhost:4000/api
+VITE_API_KEY=your_api_key_here
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Supabase Configuration (for real-time features)
+# Get these from your Supabase project settings
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Required Variables
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `VITE_API_URL`: The URL of your analytics API backend
+- `VITE_API_KEY`: Your project API key (used for authentication)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Optional Variables (for real-time mode)
+
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous/public key
+
+**Note:** The dashboard works without Supabase configuration, but real-time features will be disabled. You can still use the REST API mode for fetching data.
+
+## Real-Time Mode
+
+The dashboard supports real-time updates via Supabase WebSocket connections:
+
+1. **Enable Real-Time**: Toggle the "Real-time mode" switch in the sidebar
+2. **Live Updates**: New events will automatically appear without manual refresh
+3. **Automatic Sync**: Data updates instantly when events are tracked
+4. **Date Filtering**: Real-time updates respect your selected date range
+
+When real-time mode is enabled, you'll see a "Live" indicator with a pulsing dot on the dashboard.
+
+## Getting Started
+
+```bash
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+
+# Build for production
+npm run build
 ```
+
+## Tech Stack
+
+- **React 19** with TypeScript
+- **Vite** for fast development and builds
+- **TailwindCSS** for styling
+- **Recharts** for data visualization
+- **Supabase** for real-time WebSocket connections
+- **Axios** for REST API calls
