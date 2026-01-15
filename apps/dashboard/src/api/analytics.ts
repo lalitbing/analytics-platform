@@ -47,3 +47,13 @@ export const trackEvent = async (eventName: string, useRedis: boolean = false) =
 
   return data;
 };
+
+export const getWorkerStatus = async () => {
+  const { data } = await axios.get(`${API}/worker-status`, {
+    headers: {
+      "x-api-key": API_KEY,
+    },
+  })
+
+  return data as { active: boolean; ttlSeconds: number | null; lastSeenMs: number | null }
+}

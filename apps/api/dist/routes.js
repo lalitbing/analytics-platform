@@ -7,6 +7,7 @@ const validate_middleware_1 = require("./middlewares/validate.middleware");
 const track_schema_1 = require("./validators/track.schema");
 const trackBatch_controller_1 = require("./validators/trackBatch.controller");
 const stats_controller_1 = require("./controllers/stats.controller");
+const worker_controller_1 = require("./controllers/worker.controller");
 const router = (0, express_1.Router)();
 // router.post("/track", trackEvent)
 // router.post("/track", verifyApiKey, trackEvent)
@@ -22,4 +23,5 @@ router.get("/project-info", apiKey_middleware_1.verifyApiKey, (req, res) => {
         name: req.project.name || 'Default Project',
     });
 });
+router.get("/worker-status", apiKey_middleware_1.verifyApiKey, worker_controller_1.getWorkerStatus);
 exports.default = router;

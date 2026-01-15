@@ -5,6 +5,7 @@ import { validate } from './middlewares/validate.middleware';
 import { trackSchema } from './validators/track.schema';
 import { trackBatch } from './validators/trackBatch.controller';
 import { getEventStats, getTopEvents } from './controllers/stats.controller';
+import { getWorkerStatus } from './controllers/worker.controller';
 
 const router = Router();
 
@@ -25,5 +26,7 @@ router.get("/project-info", verifyApiKey, (req: any, res: any) => {
     name: req.project.name || 'Default Project',
   });
 });
+
+router.get("/worker-status", verifyApiKey, getWorkerStatus)
 
 export default router;
