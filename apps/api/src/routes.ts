@@ -17,5 +17,13 @@ router.post('/track/batch', verifyApiKey, trackBatch);
 router.get("/stats/events", verifyApiKey, getEventStats)
 router.get("/stats/top-events", verifyApiKey, getTopEvents)
 
+// Get project info (for real-time WebSocket setup)
+router.get("/project-info", verifyApiKey, (req: any, res: any) => {
+  res.json({
+    id: req.project.id,
+    project_id: req.project.id,
+    name: req.project.name || 'Default Project',
+  });
+});
 
 export default router;
