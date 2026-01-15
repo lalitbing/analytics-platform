@@ -1,0 +1,21 @@
+{
+    "name": "pulseboard-sdk",
+    "version": "1.0.0",
+    "description": "Lightweight analytics SDK for Pulseboard",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": ["dist"],
+    "scripts": {
+      "build": "tsc",
+      "prepublishOnly": "npm run build"
+    },
+    "keywords": [
+      "analytics",
+      "tracking",
+      "sdk",
+      "events"
+    ],
+    "author": "Lalit Sharma",
+    "license": "MIT"
+  }
+  
