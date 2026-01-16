@@ -35,6 +35,7 @@ exports.getEventStats = getEventStats;
 const getTopEvents = async (req, res) => {
     try {
         const { from, to } = req.query;
+        const TOP_LIMIT = 5;
         let q = supabase_1.supabase.from('events').select('event_name, created_at').eq('project_id', req.project.id);
         if (from && to) {
             q = q.gte('created_at', toIsoStartUtc(String(from))).lte('created_at', toIsoEndUtc(String(to)));
@@ -59,8 +60,16 @@ const getTopEvents = async (req, res) => {
             count: v.count,
             last_seen: v.last_seen,
         }));
+        // Sort by frequency (descending), then recency (descending), then name (ascending)
+        top.sort((a, b) => {
+            if (b.count !== a.count)
+                return b.count - a.count;
+            if (b.last_seen !== a.last_seen)
+                return String(b.last_seen).localeCompare(String(a.last_seen));
+            return String(a.event_name).localeCompare(String(b.event_name));
+        });
         res.json({
-            top,
+            top: top.slice(0, TOP_LIMIT),
             events,
         });
     }

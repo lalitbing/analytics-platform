@@ -431,7 +431,7 @@ function App() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 space-y-6">
             {/* KPI row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <KPI label="Total events" value={displayEvents.length} loading={displayLoading} hint="All tracked events" />
               <KPI label="Unique events" value={uniqueEvents} loading={displayLoading} hint="Distinct names" />
               <KPI label="Avg / active day" value={avgPerActiveDay} loading={displayLoading} hint="Smoothed" />

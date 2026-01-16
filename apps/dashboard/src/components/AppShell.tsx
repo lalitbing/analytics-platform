@@ -2,6 +2,75 @@ import { useEffect, useState, type ReactNode } from 'react';
 import EventTracker from './EventTracker';
 import type { ToastInput } from '../lib/toastBus';
 
+function TipCarousel({
+  tips,
+  tipIndex,
+  onPrev,
+  onNext,
+  onSelect,
+  containerClassName,
+}: {
+  tips: string[];
+  tipIndex: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onSelect: (idx: number) => void;
+  containerClassName: string;
+}) {
+  return (
+    <div className={containerClassName}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold text-gray-900">Tips</p>
+          <p className="mt-1 text-xs text-gray-600">{tips[tipIndex] ?? ''}</p>
+        </div>
+
+        {tips.length > 1 ? (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onPrev}
+              className="cursor-pointer rounded-lg p-1.5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+              aria-label="Previous tip"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={onNext}
+              className="cursor-pointer rounded-lg p-1.5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+              aria-label="Next tip"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      {tips.length > 1 ? (
+        <div className="mt-2 flex items-center gap-1.5">
+          {tips.map((_, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => onSelect(idx)}
+              aria-label={`Go to tip ${idx + 1}`}
+              className={
+                'h-1.5 w-1.5 rounded-full transition-colors ' +
+                (idx === tipIndex ? 'bg-gray-900' : 'bg-gray-300 hover:bg-gray-400')
+              }
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function NavItem({
   label,
   active,
@@ -57,6 +126,13 @@ export default function AppShell({
   realTimeError?: string | null;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [tipIndex, setTipIndex] = useState(0);
+  const tips = [
+    'Use the date filter to quickly narrow down spikes—start with the last 24h when debugging.',
+    'Turn on Real-time mode while validating instrumentation, then switch it off for larger date ranges.',
+    'Add consistent properties (e.g., userId, plan, source) to make filtering and segmentation much more powerful.',
+    'If you use Redis ingestion, keep the worker running so queued events flush into storage.',
+  ] as const;
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -69,10 +145,22 @@ export default function AppShell({
     };
   }, [mobileMenuOpen]);
 
+  useEffect(() => {
+    if (tips.length <= 1) return;
+    const id = window.setInterval(() => {
+      setTipIndex((i) => (i + 1) % tips.length);
+    }, 8000);
+    return () => window.clearInterval(id);
+  }, [tips.length]);
+
   const handleNavClick = (label: 'Overview' | 'Events' | 'Integration') => {
     onNavigate?.(label);
     setMobileMenuOpen(false);
   };
+
+  const nextTip = () => setTipIndex((i) => (i + 1) % tips.length);
+  const prevTip = () => setTipIndex((i) => (i - 1 + tips.length) % tips.length);
+  const selectTip = (idx: number) => setTipIndex(((idx % tips.length) + tips.length) % tips.length);
 
   return (
     <div className="min-h-screen flex flex-col bg-linear-to-b from-gray-50 to-white">
@@ -143,12 +231,14 @@ export default function AppShell({
                 <NavItem label="Integration" active={activeNav === 'Integration'} onClick={() => handleNavClick('Integration')} />
               </div>
 
-              <div className="rounded-2xl border border-gray-200/70 bg-gray-50 p-4">
-                <p className="text-xs font-semibold text-gray-900">Tip</p>
-                <p className="mt-1 text-xs text-gray-600">
-                  Use Overview for KPIs, Events for exploration, and Integration for copy/paste snippets. Redis ingestion requires the worker to be active.
-                </p>
-              </div>
+              <TipCarousel
+                tips={[...tips]}
+                tipIndex={tipIndex}
+                onPrev={prevTip}
+                onNext={nextTip}
+                onSelect={selectTip}
+                containerClassName="rounded-2xl border border-gray-200/70 bg-gray-50 p-4"
+              />
 
               {onRealTimeToggle && (
                 <div className="rounded-2xl border border-gray-200/70 bg-gray-50 p-4">
@@ -243,12 +333,14 @@ export default function AppShell({
                 <NavItem label="Integration" active={activeNav === 'Integration'} onClick={() => handleNavClick('Integration')} />
               </div>
 
-              <div className="rounded-2xl border border-gray-200/70 bg-white/80 backdrop-blur shadow-sm p-4">
-                <p className="text-xs font-semibold text-gray-900">Tip</p>
-                <p className="mt-1 text-xs text-gray-600">
-                  Use Overview for KPIs, Events for exploration, and Integration for copy/paste snippets. Redis ingestion requires the worker to be active.
-                </p>
-              </div>
+              <TipCarousel
+                tips={[...tips]}
+                tipIndex={tipIndex}
+                onPrev={prevTip}
+                onNext={nextTip}
+                onSelect={selectTip}
+                containerClassName="rounded-2xl border border-gray-200/70 bg-white/80 backdrop-blur shadow-sm p-4"
+              />
 
               {onRealTimeToggle && (
                 <div className="rounded-2xl border border-gray-200/70 bg-white/80 backdrop-blur shadow-sm p-4">
