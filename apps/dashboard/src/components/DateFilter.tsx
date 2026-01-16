@@ -36,7 +36,7 @@ export default function DateFilter({
 
   return (
     <div className="flex flex-col items-stretch gap-2">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div className="flex flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" className={pillClass(activePreset === 'today')} onClick={() => onPresetClick('today')}>
             Today
