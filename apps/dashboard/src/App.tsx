@@ -114,7 +114,9 @@ function App() {
 
       try {
         let slowTimer: number | null = null;
-        if (import.meta.env.PROD) {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+        const isOnRenderApi = /onrender/i.test(apiUrl);
+        if (import.meta.env.PROD && isOnRenderApi) {
           slowTimer = window.setTimeout(() => {
             emitToast({
               kind: 'error',
@@ -125,7 +127,7 @@ function App() {
           }, 10_000);
         }
 
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/project-info`, {
+        const response = await fetch(`${apiUrl}/project-info`, {
           headers: {
             'x-api-key': apiKey,
           },
@@ -449,7 +451,7 @@ function App() {
               title="Events over time"
               subtitle={lastUpdatedAt ? `Last updated ${lastUpdatedAt.toLocaleTimeString()}` : ' '}
               actions={
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
                   {realTime.isRealTimeEnabled && (
                     <span
                       className="text-[11px] rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5 flex items-center gap-1"
@@ -468,7 +470,10 @@ function App() {
                   >
                     {apiKeyPresent ? 'Key OK' : 'Key missing'}
                   </span>
-                  <span className="text-[11px] rounded-full border border-gray-200 bg-gray-50 text-gray-700 px-2 py-0.5" title={apiUrl}>
+                  <span
+                    className="text-[11px] rounded-full border border-gray-200 bg-gray-50 text-gray-700 px-2 py-0.5 min-w-0 basis-full sm:basis-auto truncate"
+                    title={apiUrl}
+                  >
                     API: {apiUrl.replace(/^https?:\/\//, '')}
                   </span>
                 </div>

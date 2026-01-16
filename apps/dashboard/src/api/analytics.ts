@@ -8,8 +8,11 @@ const SLOW_API_MS = 10_000;
 const SLOW_TOAST_THROTTLE_MS = 60_000;
 let lastSlowToastAt = 0;
 
+const IS_ONRENDER_API = /onrender/i.test(API);
+
 function maybeEmitSlowApiToast() {
   if (!import.meta.env.PROD) return;
+  if (!IS_ONRENDER_API) return;
   const now = Date.now();
   if (now - lastSlowToastAt < SLOW_TOAST_THROTTLE_MS) return;
   lastSlowToastAt = now;
@@ -29,6 +32,7 @@ const client = axios.create();
 
 client.interceptors.request.use((config) => {
   if (!import.meta.env.PROD) return config;
+  if (!IS_ONRENDER_API) return config;
   const cfg = config as typeof config & AxiosConfigWithMeta;
   cfg.__pulseboardSlowTimer = globalThis.setTimeout(() => {
     maybeEmitSlowApiToast();
